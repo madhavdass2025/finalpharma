@@ -40,7 +40,7 @@ if ($result = $conn->query($sql_today_collections)) {
 // Low Stock & Expiry Alerts
 $low_stock_count = 0;
 $expiring_soon_count = 0;
-$sql_low_stock = "SELECT COUNT(*) as count FROM (SELECT p.id FROM products p JOIN stock_batches sb ON p.id = sb.product_id GROUP BY p.id HAVING SUM(sb.current_qty) <= p.reorder_level) as low_stock";
+$sql_low_stock = "SELECT COUNT(*) as count FROM (SELECT p.id FROM products p JOIN stock_batches sb ON p.id = sb.product_id GROUP BY p.id, p.reorder_level HAVING SUM(sb.current_qty) <= p.reorder_level) as low_stock";
 $sql_expiring = "SELECT COUNT(DISTINCT product_id) as count FROM stock_batches WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)";
 if ($result = $conn->query($sql_low_stock)) $low_stock_count = $result->fetch_assoc()['count'] ?? 0;
 if ($result = $conn->query($sql_expiring)) $expiring_soon_count = $result->fetch_assoc()['count'] ?? 0;
