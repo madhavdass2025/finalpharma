@@ -33,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_purchase'])) {
 
     try {
         // Step 1: Insert into purchase_bills
-        $sql_bill = "INSERT INTO purchase_bills (supplier_id, bill_number, bill_date, total_amount, payment_status) VALUES (?, ?, ?, ?, 'Pending')";
+        $sql_bill = "INSERT INTO purchase_bills (supplier_id, bill_number, bill_date, total_amount, status) VALUES (?, ?, ?, ?, 'Completed')";
         $stmt_bill = $conn->prepare($sql_bill);
         $stmt_bill->bind_param("issd", $supplier_id, $bill_number, $bill_date, $total_amount);
         $stmt_bill->execute();

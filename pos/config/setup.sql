@@ -35,6 +35,7 @@ CREATE TABLE `products` (
   `mrp` decimal(10,2) NOT NULL,
   `reorder_level` int(11) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
+  `is_favorite` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -83,6 +84,20 @@ INSERT INTO `stock_batches` (`id`, `product_id`, `batch_number`, `mfg_date`, `ex
 
 -- --------------------------------------------------------
 --
+-- Table structure for table `customers`
+--
+CREATE TABLE `customers` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `reg_no` varchar(20) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `reg_no` (`reg_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+--
 -- Table structure for table `sales_invoices`
 --
 CREATE TABLE `sales_invoices` (
@@ -95,11 +110,14 @@ CREATE TABLE `sales_invoices` (
   `total_paid` decimal(10,2) NOT NULL DEFAULT 0.00,
   `balance_due` decimal(10,2) NOT NULL DEFAULT 0.00,
   `user_id` int(11) NOT NULL,
+  `customer_id` int(11) DEFAULT NULL,
   `customer_name` varchar(255) DEFAULT NULL,
   `status` varchar(50) DEFAULT 'Completed',
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
-  CONSTRAINT `sales_invoices_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
+  KEY `customer_id` (`customer_id`),
+  CONSTRAINT `sales_invoices_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `sales_invoices_ibfk_2` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------

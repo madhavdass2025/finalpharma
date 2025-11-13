@@ -16,9 +16,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $hsn = trim($_POST['hsn_code']);
         $mrp = trim($_POST['mrp']);
         $reorder = trim($_POST['reorder_level']);
-        $sql = "INSERT INTO products (product_name, generic_name, hsn_code, mrp, reorder_level) VALUES (?, ?, ?, ?, ?)";
+        $is_favorite = isset($_POST['is_favorite']) ? 1 : 0;
+        $sql = "INSERT INTO products (product_name, generic_name, hsn_code, mrp, reorder_level, is_favorite) VALUES (?, ?, ?, ?, ?, ?)";
         if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("sssdi", $name, $generic, $hsn, $mrp, $reorder);
+            $stmt->bind_param("sssdis", $name, $generic, $hsn, $mrp, $reorder, $is_favorite);
             $stmt->execute();
         }
     }
@@ -31,14 +32,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $hsn = trim($_POST['hsn_code']);
         $mrp = trim($_POST['mrp']);
         $reorder = trim($_POST['reorder_level']);
-        $sql = "UPDATE products SET product_name = ?, generic_name = ?, hsn_code = ?, mrp = ?, reorder_level = ? WHERE id = ?";
+        $is_favorite = isset($_POST['is_favorite']) ? 1 : 0;
+        $sql = "UPDATE products SET product_name = ?, generic_name = ?, hsn_code = ?, mrp = ?, reorder_level = ?, is_favorite = ? WHERE id = ?";
         if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("sssdis", $name, $generic, $hsn, $mrp, $reorder, $id);
+            $stmt->bind_param("sssdisi", $name, $generic, $hsn, $mrp, $reorder, $is_favorite, $id);
             $stmt->execute();
         }
     }
 
-    // Delete Product (Soft Delete by setting is_active = false)
+    // Delete Product (Soft Delete)
     if (isset($_POST['delete_product'])) {
         $id = $_POST['product_id'];
         $sql = "UPDATE products SET is_active = FALSE WHERE id = ?";
@@ -53,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // Fetch all active products
 $products = [];
-$sql = "SELECT id, product_name, generic_name, hsn_code, mrp, reorder_level FROM products WHERE is_active = TRUE ORDER BY id";
+$sql = "SELECT id, product_name, generic_name, hsn_code, mrp, reorder_level, is_favorite FROM products WHERE is_active = TRUE ORDER BY id";
 if ($result = $conn->query($sql)) {
     while ($row = $result->fetch_assoc()) $products[] = $row;
 }
@@ -82,6 +84,10 @@ $conn->close();
                     <div class="col-md-2"><input type="number" step="0.01" name="mrp" class="form-control" placeholder="MRP" required></div>
                     <div class="col-md-2"><input type="number" name="reorder_level" class="form-control" placeholder="Reorder Level" required></div>
                 </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" name="is_favorite" value="1" id="add_is_favorite">
+                    <label class="form-check-label" for="add_is_favorite">Mark as Fast Access Favorite</label>
+                </div>
                 <button type="submit" name="add_product" class="btn btn-primary mt-2">Add Product</button>
             </form>
         </div>
@@ -90,16 +96,13 @@ $conn->close();
         <div class="card-header">Product List</div>
         <div class="card-body">
             <table class="table table-bordered">
-                <thead><tr><th>ID</th><th>Name</th><th>Generic</th><th>HSN</th><th>MRP</th><th>Reorder</th><th>Actions</th></tr></thead>
+                <thead><tr><th>ID</th><th>Name</th><th>Favorite</th><th>Actions</th></tr></thead>
                 <tbody>
                     <?php foreach ($products as $product): ?>
                         <tr>
                             <td><?php echo $product['id']; ?></td>
                             <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                            <td><?php echo htmlspecialchars($product['generic_name']); ?></td>
-                            <td><?php echo htmlspecialchars($product['hsn_code']); ?></td>
-                            <td><?php echo htmlspecialchars($product['mrp']); ?></td>
-                            <td><?php echo htmlspecialchars($product['reorder_level']); ?></td>
+                            <td><?php echo $product['is_favorite'] ? '⭐' : ''; ?></td>
                             <td>
                                 <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editProductModal" data-product='<?php echo json_encode($product); ?>'>Edit</button>
                                 <form action="manage_products.php" method="post" class="d-inline">
@@ -135,6 +138,10 @@ $conn->close();
                         <div class="col-md-4 mb-3"><label>MRP</label><input type="number" step="0.01" name="mrp" id="edit-mrp" class="form-control" required></div>
                         <div class="col-md-4 mb-3"><label>Reorder Level</label><input type="number" name="reorder_level" id="edit-reorder-level" class="form-control" required></div>
                     </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="is_favorite" value="1" id="edit_is_favorite">
+                        <label class="form-check-label" for="edit_is_favorite">Mark as Fast Access Favorite</label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -157,6 +164,7 @@ document.getElementById('editProductModal').addEventListener('show.bs.modal', fu
     modal.querySelector('#edit-hsn-code').value = product.hsn_code;
     modal.querySelector('#edit-mrp').value = product.mrp;
     modal.querySelector('#edit-reorder-level').value = product.reorder_level;
+    modal.querySelector('#edit_is_favorite').checked = product.is_favorite == 1;
 });
 </script>
 </body>
