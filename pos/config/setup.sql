@@ -146,7 +146,7 @@ CREATE TABLE `purchase_bills` (
   `bill_date` date NOT NULL,
   `supplier_id` int(11) NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
-  `payment_status` varchar(50) DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Completed',
   PRIMARY KEY (`id`),
   KEY `supplier_id` (`supplier_id`),
   CONSTRAINT `purchase_bills_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE RESTRICT
