@@ -33,16 +33,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['process_sale'])) {
 
     $conn->begin_transaction();
     try {
-        // 1. Create sales_invoices record
-        $sql_invoice = "INSERT INTO sales_invoices (invoice_number, invoice_date, net_amount, gross_amount, total_tax, total_paid, balance_due, user_id, customer_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql_invoice = "INSERT INTO sales_invoices (invoice_number, invoice_date, net_amount, gross_amount, total_tax, total_paid, balance_due, user_id, customer_name, status) VALUES (?, ?, ?, ?, 0.00, ?, ?, ?, ?, ?)";
         $invoice_number = "INV-" . time();
 
         $stmt_invoice = $conn->prepare($sql_invoice);
-        $stmt_invoice->bind_param("ssddddisss", $invoice_number, $invoice_date, $net_amount, $net_amount, $total_tax, $total_paid, $balance_due, $user_id, $customer_name, $status);
+        $stmt_invoice->bind_param("ssdddiss", $invoice_number, $invoice_date, $net_amount, $net_amount, $total_paid, $balance_due, $user_id, $customer_name, $status);
         $stmt_invoice->execute();
         $sales_invoice_id = $stmt_invoice->insert_id;
 
-        // 2. Create payments records for each partial payment
         if (isset($_POST['payment_method'])) {
             foreach ($_POST['payment_method'] as $key => $method) {
                 $amount = (float)$_POST['amount_paid'][$key];
@@ -55,10 +53,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['process_sale'])) {
             }
         }
 
-        // 3. Loop through cart items and update stock
         foreach ($_POST['product_id'] as $key => $product_id) {
             $quantity = $_POST['quantity'][$key];
-            if ($quantity <= 0) continue; // Skip items with no quantity
+            if ($quantity <= 0) continue;
 
             $batch_id = $_POST['batch_id'][$key];
             $unit_price = $_POST['unit_price'][$key];
@@ -89,7 +86,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['process_sale'])) {
     }
 }
 
-// Fetch products for search
 $products = [];
 $sql_products = "SELECT p.id, p.product_name, p.mrp, SUM(sb.current_qty) as total_stock FROM products p JOIN stock_batches sb ON p.id = sb.product_id WHERE p.is_active = TRUE AND sb.current_qty > 0 AND sb.expiry_date > CURDATE() GROUP BY p.id ORDER BY p.product_name";
 if ($result = $conn->query($sql_products)) {
@@ -121,7 +117,7 @@ $conn->close();
                 <div class="card"><div class="card-header">Billing Items</div>
                     <div class="card-body">
                         <div class="mb-3 position-relative"><input type="text" id="product-search" class="form-control" placeholder="Search for products..."><div id="product-search-results"></div></div>
-                        <table class="table" id="billing-cart"><thead><tr><th>Product</th><th>Batch</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead><tbody></tbody></table>
+                        <table class="table" id="billing-cart"><thead><tr><th>Product</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
             </div>
@@ -150,24 +146,79 @@ $conn->close();
 </div>
 <script>
     const products = <?php echo json_encode($products); ?>;
+
     document.getElementById('product-search').addEventListener('keyup', function() {
-        // ... search logic from previous version ...
+        const query = this.value.toLowerCase();
+        const resultsContainer = document.getElementById('product-search-results');
+        resultsContainer.innerHTML = '';
+        if (query.length < 2) return;
+        const filteredProducts = products.filter(p => p.product_name.toLowerCase().includes(query));
+        let resultsHtml = '<ul class="list-group">';
+        filteredProducts.forEach(p => {
+            resultsHtml += `<li class="list-group-item" onclick="fetchBatches(${p.id}, '${p.product_name.replace(/'/g, "\\'")}')">${p.product_name} (Stock: ${p.total_stock})</li>`;
+        });
+        resultsHtml += '</ul>';
+        resultsContainer.innerHTML = resultsHtml;
     });
-    // ... fetchBatches and addToCart logic from previous version ...
+
+    async function fetchBatches(productId, productName) {
+        document.getElementById('product-search').value = '';
+        document.getElementById('product-search-results').innerHTML = '';
+        try {
+            const response = await fetch(`api_get_batches.php?product_id=${productId}`);
+            const result = await response.json();
+            if (result.status === 'success' && result.data.length > 0) {
+                const batch = result.data[0]; // FEFO
+                addToCart(productId, productName, batch);
+            } else {
+                alert(result.message || 'No stock found.');
+            }
+        } catch (error) {
+            console.error('Error fetching batches:', error);
+            alert('Failed to fetch product details.');
+        }
+    }
+
+    function addToCart(productId, productName, batch) {
+        const cartBody = document.querySelector("#billing-cart tbody");
+        if (document.querySelector(`input[name='batch_id[]'][value='${batch.id}']`)) {
+            alert('This batch is already in the cart.');
+            return;
+        }
+        const row = document.createElement('tr');
+        row.className = 'cart-item-row';
+        row.innerHTML = `
+            <td>
+                ${productName}
+                <input type="hidden" name="product_id[]" value="${productId}">
+                <input type="hidden" name="batch_id[]" value="${batch.id}">
+            </td>
+            <td>${batch.batch_number}</td>
+            <td>${batch.expiry_date}</td>
+            <td><input type="number" name="quantity[]" class="form-control quantity-input" value="1" min="1" max="${batch.current_qty}" required></td>
+            <td><input type="number" step="0.01" name="unit_price[]" class="form-control price-input" value="${batch.mrp}" required></td>
+            <td class="total-price">${batch.mrp}</td>
+            <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); updateTotal();">X</button></td>
+        `;
+        cartBody.appendChild(row);
+        updateTotal();
+        row.querySelector('.quantity-input').addEventListener('input', updateTotal);
+        row.querySelector('.price-input').addEventListener('input', updateTotal);
+    }
 
     document.getElementById('add-payment-btn').addEventListener('click', function() {
-        const paymentMethodsContainer = document.getElementById('payment-methods');
-        const newPaymentRow = document.createElement('div');
-        newPaymentRow.className = 'row payment-row mb-2';
-        newPaymentRow.innerHTML = `
+        const container = document.getElementById('payment-methods');
+        const newRow = document.createElement('div');
+        newRow.className = 'row payment-row mb-2';
+        newRow.innerHTML = `
             <div class="col-6"><select name="payment_method[]" class="form-control"><option value="Cash">Cash</option><option value="Card">Card</option><option value="UPI">UPI</option></select></div>
             <div class="col-5"><input type="number" step="0.01" name="amount_paid[]" class="form-control amount-paid-input" placeholder="Amount"></div>
             <div class="col-1"><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.payment-row').remove(); updatePaymentTotals();">X</button></div>
         `;
-        paymentMethodsContainer.appendChild(newPaymentRow);
+        container.appendChild(newRow);
     });
 
-    document.querySelector('.card-body').addEventListener('input', function(e) {
+    document.getElementById('pos-form').addEventListener('input', function(e) {
         if (e.target.classList.contains('amount-paid-input')) {
             updatePaymentTotals();
         }
@@ -192,7 +243,6 @@ $conn->close();
             totalPaid += parseFloat(input.value) || 0;
         });
         document.getElementById('total-paid').textContent = totalPaid.toFixed(2);
-
         const billTotal = parseFloat(document.getElementById('cart-total').textContent) || 0;
         const balanceDue = billTotal - totalPaid;
         document.getElementById('balance-due').textContent = balanceDue.toFixed(2);
