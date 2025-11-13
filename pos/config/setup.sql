@@ -92,9 +92,11 @@ CREATE TABLE `sales_invoices` (
   `net_amount` decimal(10,2) NOT NULL,
   `gross_amount` decimal(10,2) NOT NULL,
   `total_tax` decimal(10,2) NOT NULL,
+  `total_paid` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `balance_due` decimal(10,2) NOT NULL DEFAULT 0.00,
   `user_id` int(11) NOT NULL,
   `customer_name` varchar(255) DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Completed',
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `sales_invoices_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
