@@ -6,8 +6,6 @@ require_once '../config/database.php';
 
 Auth::check_access([1, 2]);
 
-// --- FULL DASHBOARD PHP LOGIC ---
-// Data for Admin Dashboard
 if ($_SESSION['role_id'] == 1) {
     $sales_trend_data = [];
     $sql_sales = "SELECT DATE(invoice_date) as day, SUM(net_amount) as total_sales FROM sales_invoices WHERE invoice_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY day ORDER BY day";
@@ -18,7 +16,6 @@ if ($_SESSION['role_id'] == 1) {
         }
     }
 }
-// KPIs
 $kpis = ['today_sales' => 0, 'yesterday_sales' => 0, 'today_collections' => ['Cash' => 0, 'Card' => 0, 'UPI' => 0]];
 $sql_today_sales = "SELECT SUM(net_amount) as total FROM sales_invoices WHERE DATE(invoice_date) = CURDATE()";
 $sql_yesterday_sales = "SELECT SUM(net_amount) as total FROM sales_invoices WHERE DATE(invoice_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
@@ -34,7 +31,6 @@ if ($result = $conn->query($sql_today_collections)) {
     }
 }
 
-// Alerts
 $low_stock_count = 0;
 $expiring_soon_count = 0;
 $sql_low_stock = "SELECT COUNT(*) as count FROM (SELECT p.id FROM products p JOIN stock_batches sb ON p.id = sb.product_id GROUP BY p.id, p.reorder_level HAVING SUM(sb.current_qty) <= p.reorder_level) as low_stock";
