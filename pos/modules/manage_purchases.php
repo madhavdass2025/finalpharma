@@ -1,20 +1,14 @@
 <?php
 require_once '../includes/header.php';
 require_once '../includes/sidebar.php';
-// ... (includes)
+require_once '../includes/Auth.php';
+require_once '../config/database.php';
+require_once '../includes/csrf_helper.php';
 
 Auth::check_access([1]);
 
-// --- PHP LOGIC RESTORED ---
+// --- PHP ---
 ?>
-
 <h1 class="mt-4">Manage Purchase Bills</h1>
-
-<div class="card">
-    <div class="card-header"><a href="add_purchase.php" class="btn btn-primary">Add New Purchase Bill</a></div>
-    <div class="card-body">
-        <!-- ... (table) ... -->
-    </div>
-</div>
-
+<!-- HTML -->
 <?php require_once '../includes/footer.php'; ?>

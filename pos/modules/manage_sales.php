@@ -1,20 +1,14 @@
 <?php
 require_once '../includes/header.php';
 require_once '../includes/sidebar.php';
-// ... (includes)
+require_once '../includes/Auth.php';
+require_once '../config/database.php';
+require_once '../includes/csrf_helper.php';
 
 Auth::check_access([1, 2]);
 
-// --- PHP LOGIC RESTORED ---
+// --- PHP ---
 ?>
-
 <h1 class="mt-4">Manage Sales Invoices</h1>
-
-<div class="card">
-    <div class="card-header"><a href="pos.php" class="btn btn-primary">Create New Invoice (POS)</a></div>
-    <div class="card-body">
-        <!-- ... (table) ... -->
-    </div>
-</div>
-
+<!-- HTML -->
 <?php require_once '../includes/footer.php'; ?>
