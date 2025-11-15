@@ -8,7 +8,7 @@
         <a href="manage_sales.php" class="list-group-item list-group-item-action">Manage Invoices</a>
         <a href="add_sales_return.php" class="list-group-item list-group-item-action">Sales Return</a>
 
-        <?php if ($_SESSION["role_id"] == 1): // Admin-only links ?>
+        <?php if (isset($_SESSION["role"]) && $_SESSION["role"] == 'admin'): // Admin-only links ?>
             <h5 class="mt-3">Purchase & Stock</h5>
             <a href="add_purchase.php" class="list-group-item list-group-item-action">Add Purchase Bill</a>
             <a href="manage_purchases.php" class="list-group-item list-group-item-action">Manage Purchases</a>
