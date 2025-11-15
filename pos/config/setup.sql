@@ -7,6 +7,21 @@ USE `cpms_db`;
 
 -- --------------------------------------------------------
 --
+-- Table structure for table `roles`
+--
+CREATE TABLE `roles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_name` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `role_name` (`role_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `roles` (`id`, `role_name`) VALUES
+(1, 'admin'),
+(2, 'billing');
+
+-- --------------------------------------------------------
+--
 -- Table structure for table `users`
 --
 CREATE TABLE `users` (
@@ -16,7 +31,9 @@ CREATE TABLE `users` (
   `password` text NOT NULL,
   `role_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  KEY `role_id` (`role_id`),
+  CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role_id`) VALUES
