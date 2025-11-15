@@ -28,20 +28,29 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `role_id`) VALUES
 -- Table structure for table `products`
 --
 CREATE TABLE `products` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `product_name` varchar(255) NOT NULL,
-  `generic_name` varchar(255) DEFAULT NULL,
-  `hsn_code` varchar(20) DEFAULT NULL,
-  `mrp` decimal(10,2) NOT NULL,
-  `reorder_level` int(11) NOT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `is_favorite` tinyint(1) DEFAULT 0,
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `product_name` VARCHAR(255) NOT NULL,
+  `generic_name` VARCHAR(255) DEFAULT NULL,
+  `description` VARCHAR(100) DEFAULT NULL,
+  `hsn_code` VARCHAR(20) DEFAULT NULL,
+  `mrp` DECIMAL(10, 2) NOT NULL,
+  `tax_excluded_price` DECIMAL(10, 2) NOT NULL,
+  `tax_amount` DECIMAL(10, 2) NOT NULL,
+  `taxable` VARCHAR(10) NOT NULL DEFAULT 'yes',
+  `itax_rate` DECIMAL(5, 2) NOT NULL,
+  `cess_rate` DECIMAL(5, 2) NOT NULL,
+  `reorder_level` INT(11) NOT NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `is_favorite` TINYINT(1) DEFAULT 0,
+  `submitted_by` VARCHAR(100) NOT NULL,
+  `submitted_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` VARCHAR(100) NOT NULL DEFAULT 'available',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `products` (`id`, `product_name`, `generic_name`, `hsn_code`, `mrp`, `reorder_level`, `is_active`) VALUES
-(1, 'Paracetamol 500mg', 'Paracetamol', '30049099', '20.00', 50, 1),
-(2, 'Aspirin 75mg', 'Aspirin', '30045020', '10.00', 100, 1);
+INSERT INTO `products` (`product_name`, `generic_name`, `hsn_code`, `mrp`, `tax_excluded_price`, `tax_amount`, `itax_rate`, `cess_rate`, `reorder_level`, `submitted_by`) VALUES
+('Paracetamol 500mg', 'Paracetamol', '30049099', 20.00, 18.00, 2.00, 5.00, 0.00, 50, 'Admin'),
+('Aspirin 75mg', 'Aspirin', '30045020', 10.00, 9.00, 1.00, 5.00, 0.00, 100, 'Admin');
 
 -- --------------------------------------------------------
 --

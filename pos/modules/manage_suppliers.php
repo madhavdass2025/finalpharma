@@ -1,119 +1,69 @@
 <?php
-require_once '../includes/header.php';
-require_once '../includes/sidebar.php';
-require_once '../includes/Auth.php';
-require_once '../config/database.php';
-require_once '../includes/csrf_helper.php';
+include_once '../includes/db_connect.php';
+include_once '../includes/functions.php';
 
-Auth::check_access([1]);
+session_start();
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    check_csrf();
-    if (isset($_POST['add_supplier'])) {
-        $sql = "INSERT INTO suppliers (supplier_name, phone, gstin, address) VALUES (?, ?, ?, ?)";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("ssss", $_POST['supplier_name'], $_POST['phone'], $_POST['gstin'], $_POST['address']);
-            $stmt->execute();
-        }
-    }
-    if (isset($_POST['edit_supplier'])) {
-        $sql = "UPDATE suppliers SET supplier_name = ?, phone = ?, gstin = ?, address = ? WHERE id = ?";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("ssssi", $_POST['supplier_name'], $_POST['phone'], $_POST['gstin'], $_POST['address'], $_POST['supplier_id']);
-            $stmt->execute();
-        }
-    }
-    if (isset($_POST['delete_supplier'])) {
-        $sql = "DELETE FROM suppliers WHERE id = ?";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("i", $_POST['supplier_id']);
-            $stmt->execute();
-        }
-    }
-    header("location: manage_suppliers.php");
-    exit;
+if (!isset($_SESSION['user_id']) || !check_user_role($mysqli, $_SESSION['user_id'], 'admin')) {
+    header('Location: ../index.php');
+    exit();
 }
 
-$suppliers = [];
-$sql = "SELECT id, supplier_name, phone, gstin, address FROM suppliers ORDER BY id";
-if ($result = $conn->query($sql)) {
-    while ($row = $result->fetch_assoc()) $suppliers[] = $row;
-}
-$conn->close();
+// Fetch suppliers
+$suppliers = $mysqli->query("SELECT id, supplier_name, phone, gstin FROM suppliers ORDER BY id DESC")->fetch_all(MYSQLI_ASSOC);
+
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Suppliers</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+    <?php include '../includes/header.php'; ?>
+    <?php include '../includes/sidebar.php'; ?>
 
-<h1 class="mt-4">Supplier Management</h1>
-<div class="card mb-4">
-    <div class="card-header">Add New Supplier</div>
-    <div class="card-body">
-        <form action="manage_suppliers.php" method="post">
-            <?php csrf_input(); ?>
-            <div class="row">
-                <div class="col-md-3"><input type="text" name="supplier_name" class="form-control" placeholder="Supplier Name" required></div>
-                <div class="col-md-2"><input type="text" name="phone" class="form-control" placeholder="Phone"></div>
-                <div class="col-md-2"><input type="text" name="gstin" class="form-control" placeholder="GSTIN"></div>
-                <div class="col-md-3"><input type="text" name="address" class="form-control" placeholder="Address"></div>
-                <div class="col-md-2"><button type="submit" name="add_supplier" class="btn btn-primary w-100">Add Supplier</button></div>
-            </div>
-        </form>
-    </div>
-</div>
-<div class="card">
-    <div class="card-header">Existing Suppliers</div>
-    <div class="card-body">
-        <table class="table table-bordered">
-            <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>GSTIN</th><th>Address</th><th>Actions</th></tr></thead>
-            <tbody>
-                <?php foreach ($suppliers as $supplier): ?>
+    <div class="content">
+        <div class="container">
+            <h2>Manage Suppliers</h2>
+            <a href="add_supplier.php" class="btn btn-success mb-3">Add New Supplier</a>
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success"><?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?></div>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger"><?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?></div>
+            <?php endif; ?>
+            <table class="table table-bordered">
+                <thead>
                     <tr>
-                        <td><?php echo $supplier['id']; ?></td>
-                        <td><?php echo htmlspecialchars($supplier['supplier_name']); ?></td>
-                        <td><?php echo htmlspecialchars($supplier['phone']); ?></td>
-                        <td><?php echo htmlspecialchars($supplier['gstin']); ?></td>
-                        <td><?php echo htmlspecialchars($supplier['address']); ?></td>
-                        <td>
-                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editSupplierModal" data-supplier='<?php echo htmlspecialchars(json_encode($supplier), ENT_QUOTES, 'UTF-8'); ?>'>Edit</button>
-                            <form action="manage_suppliers.php" method="post" class="d-inline">
-                                <?php csrf_input(); ?>
-                                <input type="hidden" name="supplier_id" value="<?php echo $supplier['id']; ?>">
-                                <button type="submit" name="delete_supplier" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                            </form>
-                        </td>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>GSTIN</th>
+                        <th>Actions</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="modal fade" id="editSupplierModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Edit Supplier</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <form action="manage_suppliers.php" method="post">
-                <div class="modal-body">
-                    <?php csrf_input(); ?>
-                    <input type="hidden" name="supplier_id" id="edit-supplier-id">
-                    <div class="mb-3"><label>Name</label><input type="text" name="supplier_name" id="edit-name" class="form-control" required></div>
-                    <div class="mb-3"><label>Phone</label><input type="text" name="phone" id="edit-phone" class="form-control"></div>
-                    <div class="mb-3"><label>GSTIN</label><input type="text" name="gstin" id="edit-gstin" class="form-control"></div>
-                    <div class="mb-3"><label>Address</label><input type="text" name="address" id="edit-address" class="form-control"></div>
-                </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="submit" name="edit_supplier" class="btn btn-primary">Save changes</button></div>
-            </form>
+                </thead>
+                <tbody>
+                    <?php foreach ($suppliers as $supplier): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($supplier['supplier_name']); ?></td>
+                            <td><?php echo htmlspecialchars($supplier['phone']); ?></td>
+                            <td><?php echo htmlspecialchars($supplier['gstin']); ?></td>
+                            <td>
+                                <a href="edit_supplier.php?id=<?php echo $supplier['id']; ?>" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="delete_supplier.php?id=<?php echo $supplier['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
 
-<script>
-document.getElementById('editSupplierModal').addEventListener('show.bs.modal', function (event) {
-    var supplier = JSON.parse(event.relatedTarget.getAttribute('data-supplier'));
-    this.querySelector('#edit-supplier-id').value = supplier.id;
-    this.querySelector('#edit-name').value = supplier.supplier_name;
-    this.querySelector('#edit-phone').value = supplier.phone;
-    this.querySelector('#edit-gstin').value = supplier.gstin;
-    this.querySelector('#edit-address').value = supplier.address;
-});
-</script>
-
-<?php require_once '../includes/footer.php'; ?>
+    <?php include '../includes/footer.php'; ?>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

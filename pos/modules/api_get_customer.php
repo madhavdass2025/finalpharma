@@ -1,35 +1,27 @@
 <?php
+include_once '../includes/db_connect.php';
 header('Content-Type: application/json');
-require_once '../includes/Auth.php';
-Auth::check_access([1, 2]); // Accessible by Admin and Pharmacist
 
-require_once '../config/database.php';
-
-$response = ['status' => 'error', 'message' => 'Invalid Request'];
-
-if (isset($_GET['reg_no']) && !empty(trim($_GET['reg_no']))) {
-    $reg_no = trim($_GET['reg_no']);
-
-    $sql = "SELECT id, name, phone, address FROM customers WHERE reg_no = ?";
-
-    if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("s", $reg_no);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows == 1) {
-            $customer = $result->fetch_assoc();
-            $response = ['status' => 'success', 'data' => $customer];
-        } else {
-            $response['message'] = 'Customer not found.';
-        }
-        $stmt->close();
-    } else {
-        $response['message'] = 'Database query failed.';
-    }
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'Unauthorized']);
+    exit();
 }
 
-$conn->close();
-echo json_encode($response);
-exit;
-?>
+$customer_id = $_GET['id'] ?? '';
+
+if ($customer_id) {
+    $stmt = $mysqli->prepare("SELECT id, customer_name, phone FROM customers WHERE customer_id = ?");
+    $stmt->bind_param("s", $customer_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $customer = $result->fetch_assoc();
+
+    if ($customer) {
+        echo json_encode($customer);
+    } else {
+        echo json_encode(['error' => 'Customer not found']);
+    }
+} else {
+    echo json_encode(['error' => 'No ID provided']);
+}

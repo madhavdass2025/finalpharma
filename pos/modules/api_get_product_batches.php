@@ -1,41 +1,27 @@
 <?php
+include_once '../includes/db_connect.php';
 header('Content-Type: application/json');
-require_once '../includes/Auth.php';
-Auth::check_access([1, 2]); // Admins and Billing/Pharmacists
 
-require_once '../config/database.php';
-
-$response = ['status' => 'error', 'message' => 'Invalid request'];
-
-if (isset($_GET['product_id']) && is_numeric($_GET['product_id'])) {
-    $product_id = intval($_GET['product_id']);
-
-    $batches = [];
-    // For returns, we want to see all batches, even with 0 stock, to allow for corrections.
-    $sql = "
-        SELECT id, batch_number, current_qty
-        FROM stock_batches
-        WHERE product_id = ?
-        ORDER BY batch_number ASC
-    ";
-
-    if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("i", $product_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        while ($row = $result->fetch_assoc()) {
-            $batches[] = $row;
-        }
-        $stmt->close();
-
-        $response = ['status' => 'success', 'data' => $batches];
-    } else {
-        $response['message'] = 'Database query failed.';
-    }
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'Unauthorized']);
+    exit();
 }
 
-$conn->close();
-echo json_encode($response);
-exit;
-?>
+$product_id = $_GET['product_id'] ?? 0;
+
+if ($product_id) {
+    $query = "SELECT id, batch_number, expiry_date, current_qty, mrp
+              FROM stock_batches sb
+              JOIN products p ON sb.product_id = p.id
+              WHERE product_id = ? AND current_qty > 0
+              ORDER BY expiry_date ASC";
+    $stmt = $mysqli->prepare($query);
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $batches = $result->fetch_all(MYSQLI_ASSOC);
+    echo json_encode($batches);
+} else {
+    echo json_encode([]);
+}
