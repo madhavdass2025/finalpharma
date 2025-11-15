@@ -77,10 +77,16 @@ function get_low_stock_items($conn, $product_id = null) {
     $query = "SELECT p.product_name, SUM(sb.current_qty) as current_qty
               FROM products p
               JOIN stock_batches sb ON p.id = sb.product_id
-              GROUP BY p.id
-              HAVING current_qty < p.reorder_level";
+              GROUP BY p.id, p.product_name, p.reorder_level
+              HAVING SUM(sb.current_qty) < p.reorder_level";
     if($product_id){
-         $query .= " AND p.id = " . (int)$product_id;
+         // Note: This logic might not work as expected with the GROUP BY, but fixing the main query is the priority.
+         $query = "SELECT p.product_name, SUM(sb.current_qty) as current_qty
+                   FROM products p
+                   JOIN stock_batches sb ON p.id = sb.product_id
+                   WHERE p.id = " . (int)$product_id . "
+                   GROUP BY p.id, p.product_name, p.reorder_level
+                   HAVING SUM(sb.current_qty) < p.reorder_level";
     }
     return $conn->query($query)->fetch_all(MYSQLI_ASSOC);
 }
