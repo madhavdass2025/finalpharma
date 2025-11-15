@@ -133,8 +133,20 @@ $conn->close();
                         <div id="product-search-results"></div>
                     </div>
                     <table class="table" id="billing-cart">
-                        <thead><tr><th>Product</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
-                        <tbody></tbody>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Batch</th>
+                                <th>Expiry</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Cart items will be appended here by JavaScript -->
+                        </tbody>
                     </table>
                 </div>
             </div>
