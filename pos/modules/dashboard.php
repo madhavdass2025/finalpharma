@@ -13,24 +13,24 @@ $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
 // Common data
-$low_stock_items = get_low_stock_items($mysqli);
-$expiring_soon_items = get_expiring_soon_items($mysqli, 90); // 90 days threshold
+$low_stock_items = get_low_stock_items($conn);
+$expiring_soon_items = get_expiring_soon_items($conn, 90); // 90 days threshold
 
 // Role-specific data
 if ($role == 'admin') {
     // KPIs
-    $today_sales = get_total_sales_for_date($mysqli, date('Y-m-d'));
-    $yesterday_sales = get_total_sales_for_date($mysqli, date('Y-m-d', strtotime('-1 day')));
-    $today_collections = get_collections_by_payment_method($mysqli, date('Y-m-d'));
+    $today_sales = get_total_sales_for_date($conn, date('Y-m-d'));
+    $yesterday_sales = get_total_sales_for_date($conn, date('Y-m-d', strtotime('-1 day')));
+    $today_collections = get_collections_by_payment_method($conn, date('Y-m-d'));
 
     // Chart Data
-    $sales_trend_weekly = get_sales_trend($mysqli, 'weekly');
-    $sales_trend_monthly = get_sales_trend($mysqli, 'monthly');
+    $sales_trend_weekly = get_sales_trend($conn, 'weekly');
+    $sales_trend_monthly = get_sales_trend($conn, 'monthly');
 
 } elseif ($role == 'billing') {
     // KPIs for billing user
-    $today_sales_list = get_today_sales_for_user($mysqli, $user_id);
-    $today_collections = get_collections_by_payment_method($mysqli, date('Y-m-d'), $user_id);
+    $today_sales_list = get_today_sales_for_user($conn, $user_id);
+    $today_collections = get_collections_by_payment_method($conn, date('Y-m-d'), $user_id);
 }
 
 ?>

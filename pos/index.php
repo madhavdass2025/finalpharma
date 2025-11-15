@@ -31,21 +31,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (empty($email_err) && empty($password_err)) {
-        $sql = "SELECT id, name, email, password, role_id FROM users WHERE email = ?";
+        $sql = "SELECT u.id, u.name, u.email, u.password, r.role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ?";
         if ($stmt = $conn->prepare($sql)) {
             $stmt->bind_param("s", $param_email);
             $param_email = $email;
             if ($stmt->execute()) {
                 $stmt->store_result();
                 if ($stmt->num_rows == 1) {
-                    $stmt->bind_result($id, $name, $email_db, $password_db, $role_id);
+                    $stmt->bind_result($id, $name, $email_db, $password_db, $role_name);
                     if ($stmt->fetch()) {
-                        if ($password === $password_db) {
-                            session_regenerate_id(); // Regenerate session ID on login
+                        if ($password === $password_db) { // NOTE: Plain text password check as per initial spec
+                            session_regenerate_id();
                             $_SESSION["loggedin"] = true;
-                            $_SESSION["id"] = $id;
+                            $_SESSION["user_id"] = $id;
                             $_SESSION["name"] = $name;
-                            $_SESSION["role_id"] = $role_id;
+                            $_SESSION["role"] = $role_name;
                             header("location: modules/dashboard.php");
                         } else {
                             $login_err = "Invalid email or password.";
