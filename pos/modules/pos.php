@@ -3,6 +3,7 @@
 require_once '../includes/header.php';
 require_once '../includes/sidebar.php';
 require_once '../includes/Auth.php';
+require_once '../includes/csrf_helper.php';
 // ...
 ?>
 
